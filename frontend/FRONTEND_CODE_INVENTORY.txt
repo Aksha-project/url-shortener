@@ -1,0 +1,405 @@
+================================================================================
+FRONTEND CODE INVENTORY REPORT
+Project: URL Shortener
+Target: React + Vite Frontend Source Code Inspection
+Date: 2026-10-23
+File Location: frontend/FRONTEND_CODE_INVENTORY.txt
+================================================================================
+
+1. FRAMEWORK, ENTRY POINT, AND RELEVANT FOLDER STRUCTURE
+--------------------------------------------------------------------------------
+- Framework & UI Libraries:
+  * React 19 (dependencies: "react": "^19.3.1", "react-dom": "^19.3.1")
+  * Styling: Plain CSS (no Tailwind, Bootstrap, or component UI libraries)
+  * Dev & Build Tool: Vite 8 (devDependencies: "vite": "^8.3.4", "@vitejs/plugin-react": "^6.1.2")
+  * Linter: oxlint (devDependency: "oxlint": "^1.88.0")
+  * HTTP Client Libraries: None installed (neither Axios nor other HTTP libraries exist in package.json)
+
+- Entry Points:
+  * HTML Entry Point: frontend/index.html
+    Contains root mounting point: <div id="root"></div>
+    Loads entry module: <script type="module" src="/src/main.jsx"></script>
+    Title: <title>URL Shortener</title>
+  * JavaScript Entry Point: frontend/src/main.jsx
+    Imports StrictMode from 'react', createRoot from 'react-dom/client', './index.css', and App from './App.jsx'.
+    Mounts App at document.getElementById('root').
+
+- Relevant Frontend Directory Structure:
+  frontend/
+  ├── index.html                                 # HTML host page
+  ├── package.json                               # Dependencies & scripts
+  ├── package-lock.json                          # Lockfile
+  ├── vite.config.js                             # Vite configuration
+  └── src/
+      ├── main.jsx                               # React root bootstrap entry
+      ├── App.jsx                                # Main orchestrator component
+      ├── App.css                                # Component-level stylesheet
+      ├── index.css                              # Design tokens, reset & base styles
+      ├── api/
+      │   └── mockUrlApi.js                      # Client-side mock URL shortener service
+      └── components/
+          ├── UrlForm.jsx                        # Long URL input and submit form
+          ├── ResultCard.jsx                     # Shortened URL result display card
+          └── ErrorAlert.jsx                     # Accessible inline error banner
+
+
+2. EXACT COMPONENT NAMES AND FILE PATHS
+--------------------------------------------------------------------------------
+
+2.1 URL Input Field
+- Component Name: UrlForm
+- Exact File Path: frontend/src/components/UrlForm.jsx
+- Line Numbers: Lines 59-71
+- Code Snippet:
+    <input
+      id="long-url-input"
+      type="url"
+      className={`url-input ${validationError ? 'input-error' : ''}`}
+      placeholder="https://example.com/long-page-address"
+      value={url}
+      onChange={handleChange}
+      disabled={isLoading}
+      aria-invalid={!!validationError}
+      aria-describedby={validationError ? 'url-validation-error' : undefined}
+      autoComplete="off"
+      spellCheck="false"
+    />
+- Accessible Label: <label htmlFor="long-url-input" className="visually-hidden">Long URL to shorten</label> (Lines 56-58)
+
+2.2 "Shorten URL" Button
+- Component Name: UrlForm
+- Exact File Path: frontend/src/components/UrlForm.jsx
+- Line Numbers: Lines 72-78
+- Code Snippet:
+    <button
+      type="submit"
+      className="btn-primary"
+      disabled={isLoading}
+    >
+      {isLoading ? 'Shortening...' : 'Shorten URL'}
+    </button>
+- Button Label: Displays "Shortening..." when isLoading is true; "Shorten URL" when false.
+
+2.3 Form Submission Handler
+- Component Name: UrlForm (child) and App (parent)
+- Handler in UrlForm: handleSubmit(e)
+  * Exact File Path: frontend/src/components/UrlForm.jsx
+  * Line Numbers: Lines 33-44
+  * Code Snippet:
+      const handleSubmit = (e) => {
+        e.preventDefault()
+        setValidationError('')
+
+        const error = validateUrl(url)
+        if (error) {
+          setValidationError(error)
+          return
+        }
+
+        onSubmit(url.trim())
+      }
+- Parent Handler in App: handleShortenUrl(originalUrl)
+  * Exact File Path: frontend/src/App.jsx
+  * Line Numbers: Lines 13-29
+  * Code Snippet:
+      const handleShortenUrl = async (originalUrl) => {
+        setIsLoading(true)
+        setServerError('')
+        setResult(null)
+
+        try {
+          const mockResponse = await mockShortenUrl(originalUrl)
+          setResult(mockResponse)
+        } catch (err) {
+          setServerError(
+            err.message || 'Unable to shorten URL. Please try again.'
+          )
+        } finally {
+          setIsLoading(false)
+        }
+      }
+
+2.4 Loading State
+- State Variable: isLoading (boolean, default: false)
+- Defined in: App (frontend/src/App.jsx, Line 10: const [isLoading, setIsLoading] = useState(false))
+- Handled in:
+  * frontend/src/App.jsx:
+    - Line 14: setIsLoading(true) before calling shorten function
+    - Line 27: setIsLoading(false) in finally block
+    - Line 45: passed as prop to UrlForm (<UrlForm onSubmit={handleShortenUrl} isLoading={isLoading} />)
+  * frontend/src/components/UrlForm.jsx:
+    - Line 66: disables input (<input ... disabled={isLoading} />)
+    - Line 75: disables submit button (<button ... disabled={isLoading}>)
+    - Line 77: changes button text ({isLoading ? 'Shortening...' : 'Shorten URL'})
+
+2.5 Error and Validation Messages
+- Client-Side Validation Error:
+  * Component Name: UrlForm
+  * Exact File Path: frontend/src/components/UrlForm.jsx
+  * State Variable: validationError (string, default: '', Line 10)
+  * Validation Function: validateUrl(value) (Lines 12-31)
+    - Returns "Please enter a URL to shorten." if trimmed string is empty.
+    - Returns "Please enter a valid URL starting with http:// or https://" if protocol is not http: or https:.
+    - Returns "Please enter a valid URL with a valid domain name." if hostname lacks a dot.
+  * Rendered Element: Lines 81-85:
+      {validationError && (
+        <div id="url-validation-error" className="field-error" role="alert">
+          {validationError}
+        </div>
+      )}
+- Server / Operational Error Message:
+  * Component Name: ErrorAlert (rendered inside App)
+  * Exact File Path: frontend/src/components/ErrorAlert.jsx
+  * Line Numbers: Lines 5-23
+  * State Variable in App: serverError (string, default: '', Line 11 of frontend/src/App.jsx)
+  * Rendered Element in App: Lines 47-50 of frontend/src/App.jsx:
+      <ErrorAlert
+        message={serverError}
+        onDismiss={() => setServerError('')}
+      />
+  * ErrorAlert Dismiss Button:
+    <button type="button" className="error-dismiss-btn" onClick={onDismiss} aria-label="Dismiss error message">&times;</button>
+    (Line 12-19 of frontend/src/components/ErrorAlert.jsx)
+
+2.6 Shortened URL Result Display
+- Component Name: ResultCard
+- Exact File Path: frontend/src/components/ResultCard.jsx
+- Line Numbers: Lines 38-92
+- Rendered in App: frontend/src/App.jsx, Lines 52-54:
+    {result && (
+      <ResultCard result={result} onReset={handleReset} />
+    )}
+- Displays:
+  * Demo Disclaimer Notice (Lines 41-43):
+    <div className="demo-notice" role="note">
+      <strong>Demo short link</strong> — redirect functionality will work after backend integration.
+    </div>
+  * Short Code Tag (Lines 46-49):
+    <span className="code-label">Mock Short Code:</span>
+    <code className="code-value">{result.shortCode}</code>
+  * Shortened URL (Lines 60-65):
+    <span className="result-label">Demo Short URL:</span>
+    <code className="result-display-url" title={result.shortUrl}>
+      {result.shortUrl}
+    </code>
+  * Original URL (Lines 76-82):
+    <span className="original-label">Original:</span>
+    <span className="original-url-text" title={result.originalUrl}>{result.originalUrl}</span>
+  * Reset Button (Lines 50-56):
+    <button type="button" className="btn-text-reset" onClick={onReset}>Shorten another URL</button>
+
+2.7 Copy Button and Click Handler
+- Component Name: ResultCard
+- Exact File Path: frontend/src/components/ResultCard.jsx
+- Button Element: Lines 66-73:
+    <button
+      type="button"
+      className={`btn-secondary ${copied ? 'btn-copied' : ''}`}
+      onClick={handleCopy}
+      aria-label={copied ? 'Demo short URL copied to clipboard' : 'Copy demo short URL to clipboard'}
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+- Button Label: "Copied!" for 2000ms after copy, otherwise "Copy".
+- Handler Function: handleCopy
+  * Line Numbers: Lines 14-36
+  * Code Snippet:
+      const handleCopy = async () => {
+        try {
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(result.shortUrl)
+          } else {
+            const tempTextArea = document.createElement('textarea')
+            tempTextArea.value = result.shortUrl
+            tempTextArea.style.position = 'fixed'
+            tempTextArea.style.opacity = '0'
+            document.body.appendChild(tempTextArea)
+            tempTextArea.select()
+            document.execCommand('copy')
+            document.body.removeChild(tempTextArea)
+          }
+          setCopied(true)
+          setCopyError(false)
+          setTimeout(() => setCopied(false), 2000)
+        } catch {
+          setCopyError(true)
+          setTimeout(() => setCopyError(false), 3000)
+        }
+      }
+
+2.8 Redirect / Open URL Action
+- Status: Not found in the inspected code.
+  The short URL is rendered as an unlinked <code> element (<code className="result-display-url">),
+  not an active clickable <a> hyperlink, to prevent navigation errors before backend integration.
+
+2.9 URL History / List Component
+- Status: Not found in the inspected code.
+
+
+3. FUNCTION THAT CURRENTLY GENERATES OR FETCHES THE SHORTENED URL
+--------------------------------------------------------------------------------
+- Function Name: mockShortenUrl(originalUrl)
+- Exact File Path: frontend/src/api/mockUrlApi.js
+- Line Numbers: Lines 41-60
+- Implementation Type: Client-side mock simulation using in-memory JavaScript generation and artificial delay.
+- Code Snippet:
+    export async function mockShortenUrl(originalUrl) {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+
+      if (originalUrl.includes('simulate-error')) {
+        throw new Error('Unable to connect to server. Please try again.')
+      }
+
+      const shortCode = generateMockShortCode()
+
+      return {
+        originalUrl,
+        shortCode,
+        shortUrl: `http://localhost:8080/${shortCode}`,
+        createdAt: new Date().toISOString(),
+        isMock: true,
+      }
+    }
+- Short Code Generation Helper: generateMockShortCode()
+  * Line Numbers: Lines 25-33 of frontend/src/api/mockUrlApi.js
+  * Implementation: Selects 6 random characters from string:
+    '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+- Network Calls: None. No fetch, no Axios, no XMLHttpRequest, and no backend communication.
+
+
+4. API / HELPER / SERVICE FILES
+--------------------------------------------------------------------------------
+- Existing Service Files:
+  Only one service file exists: frontend/src/api/mockUrlApi.js
+- Exported Functions:
+  * mockShortenUrl(originalUrl) (Line 41 of frontend/src/api/mockUrlApi.js)
+- API Base URL in Code:
+  * No base URL constant or configuration object exists.
+  * The string "http://localhost:8080" is embedded only within a template literal on line 56 of mockUrlApi.js:
+    shortUrl: `http://localhost:8080/${shortCode}`
+- Other API / HTTP Clients:
+  * Not found. No Axios client instance, no Fetch wrapper, and no live API service files exist.
+
+
+5. RELEVANT STATE VARIABLES AND DATA PASSING
+--------------------------------------------------------------------------------
+1. Form Input State (in UrlForm.jsx):
+   - url (string): Managed via useState(''), updated by handleChange.
+   - validationError (string): Managed via useState(''), populated by validateUrl.
+   - Data passing: On valid submission, handleSubmit passes url.trim() to prop onSubmit.
+
+2. Coordinator State (in App.jsx):
+   - isLoading (boolean): Passed as prop to UrlForm to toggle disabled attributes and button label.
+   - serverError (string): Passed as prop message to ErrorAlert.
+   - result (object | null): Initialized to null.
+     When mockShortenUrl resolves, setResult(mockResponse) stores the result object.
+     When result is non-null, App renders <ResultCard result={result} onReset={handleReset} />.
+
+3. Result State (in ResultCard.jsx):
+   - result prop: ResultCard accesses result.shortUrl, result.shortCode, and result.originalUrl.
+   - copied (boolean): Local state in ResultCard toggling "Copied!" button feedback.
+   - copyError (boolean): Local state in ResultCard showing manual copy hint on failure.
+
+4. Reset Flow:
+   - User clicks "Shorten another URL" in ResultCard.
+   - Calls onReset prop, which triggers handleReset in App.jsx.
+   - handleReset sets result to null and serverError to '', unmounting ResultCard.
+
+
+6. CURRENT REQUEST AND RESPONSE DATA SHAPE
+--------------------------------------------------------------------------------
+[Actual Code Findings]
+
+- Request Data Shape:
+  * The input to handleShortenUrl (App.jsx line 13) and mockShortenUrl (mockUrlApi.js line 41) is a single plain string:
+    originalUrl (e.g., "https://example.com/page")
+  * No JSON request body or HTTP request headers are constructed in the current code.
+
+- Response Data Shape:
+  * The mock function mockShortenUrl returns a JavaScript Object:
+    {
+      originalUrl: string,      // e.g., "https://example.com/page"
+      shortCode: string,        // e.g., "7aK9xZ"
+      shortUrl: string,         // e.g., "http://localhost:8080/7aK9xZ"
+      createdAt: string,        // ISO-8601 date string, e.g., "2026-10-23T12:00:00.000Z"
+      isMock: boolean           // true
+    }
+
+- Data Properties Consumed by ResultCard Component:
+  * result.shortUrl: Displayed in <code className="result-display-url"> and passed to navigator.clipboard.writeText().
+  * result.shortCode: Displayed in <code className="code-value">.
+  * result.originalUrl: Displayed in <span className="original-url-text">.
+  * result.createdAt and result.isMock: Not rendered in UI.
+
+
+7. SMALLEST SET OF FRONTEND FILES NEEDING CHANGES FOR BACKEND INTEGRATION
+--------------------------------------------------------------------------------
+(Do not make these changes — listed for planning only)
+
+1. frontend/src/api/urlApi.js (NEW or replacing mockUrlApi.js):
+   - Need: Introduce an HTTP request function using native fetch() to call
+     POST http://localhost:8080/api/urls with header 'Content-Type': 'application/json'
+     and payload JSON.stringify({ originalUrl }).
+   - Handle response status codes (HTTP 201 Created vs. 400 Bad Request / 500 Internal Error).
+
+2. frontend/src/App.jsx:
+   - Need: In handleShortenUrl (lines 13-29), replace the call to mockShortenUrl(originalUrl)
+     with the new live API function.
+   - Map the returned backend response into the result state object.
+
+3. frontend/src/components/ResultCard.jsx:
+   - Need: Remove the "Demo short link — redirect functionality will work after backend integration"
+     disclaimer notice (lines 41-43).
+   - Update labels ("Mock Short Code" -> "Short Code", "Demo Short URL" -> "Shortened URL").
+   - Optionally render the shortened URL as an active clickable link
+     (<a href={result.shortUrl} target="_blank" rel="noopener noreferrer">) since the backend
+     redirect endpoint GET /{shortCode} will be live.
+
+4. frontend/vite.config.js (OPTIONAL / RECOMMENDED):
+   - Need: Add a development proxy configuration:
+       server: {
+         proxy: {
+           '/api': 'http://localhost:8080'
+         }
+       }
+     This eliminates CORS issues in local development and avoids hardcoding http://localhost:8080
+     in frontend component code.
+
+
+8. LIKELY INTEGRATION ISSUES TO VERIFY
+--------------------------------------------------------------------------------
+[Items to verify prior to and during integration; not confirmed problems unless verified]
+
+1. Response Format Compatibility (To Verify):
+   - Current Code Expectation: ResultCard expects an object with separate fields
+     (result.shortUrl, result.shortCode, result.originalUrl).
+   - Backend Behavior: If the Spring Boot backend returns a plain text string
+     (e.g., "http://localhost:8080/06CPpg") on HTTP 201 instead of a JSON object,
+     the frontend API function must parse response.text() and construct the object:
+       {
+         originalUrl: inputUrl,
+         shortUrl: responseText,
+         shortCode: responseText.split('/').pop()
+       }
+     Alternatively, if the backend returns JSON, its field names must be verified.
+
+2. Cross-Origin Resource Sharing / CORS (To Verify):
+   - The Vite frontend runs at http://localhost:5173.
+   - The Spring Boot backend runs at http://localhost:8080.
+   - Direct browser fetch requests across different ports are subject to CORS.
+   - Verification item: Confirm whether the Spring Boot controller has @CrossOrigin
+     (or a WebMvcConfigurer), or whether a Vite dev server proxy should be used.
+
+3. Error Response Payload Format (To Verify):
+   - When the backend returns HTTP 400 or HTTP 500, does it return a plain text message
+     (e.g., "Invalid URL format") or a Spring Boot error JSON object
+     ({ timestamp, status, error, message, path })?
+   - Verification item: Ensure the frontend fetch error handler reads the error
+     body appropriately so ErrorAlert receives a clean, readable string rather
+     than "[object Object]".
+
+4. HTTP Client Dependency (To Verify):
+   - Axios is not installed in package.json.
+   - Native browser fetch() is available globally in all modern browsers and in React 19
+     without installing any new packages.
+================================================================================
